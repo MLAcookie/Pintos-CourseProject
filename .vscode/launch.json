@@ -5,12 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "[P1] Debug a Test",
+            "name": "[Lab1] Debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/threads/build/kernel.o",
             "miDebuggerServerAddress": "127.0.0.1:1234",
-            "preLaunchTask": "[P1] Run Test in GDB mode",
+            "preLaunchTask": "[Lab1] Run In GDB Mode",
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

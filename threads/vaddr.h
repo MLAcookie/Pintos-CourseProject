@@ -57,23 +57,20 @@ static inline void *pg_round_down(const void *va)
 #define PHYS_BASE ((void *)LOADER_PHYS_BASE)
 
 /* Returns true if VADDR is a user virtual address. */
-static inline bool
-is_user_vaddr(const void *vaddr)
+static inline bool is_user_vaddr(const void *vaddr)
 {
     return vaddr < PHYS_BASE;
 }
 
 /* Returns true if VADDR is a kernel virtual address. */
-static inline bool
-is_kernel_vaddr(const void *vaddr)
+static inline bool is_kernel_vaddr(const void *vaddr)
 {
     return vaddr >= PHYS_BASE;
 }
 
 /* Returns kernel virtual address at which physical address PADDR
    is mapped. */
-static inline void *
-ptov(uintptr_t paddr)
+static inline void *ptov(uintptr_t paddr)
 {
     ASSERT((void *)paddr < PHYS_BASE);
 
@@ -82,8 +79,7 @@ ptov(uintptr_t paddr)
 
 /* Returns physical address at which kernel virtual address VADDR
    is mapped. */
-static inline uintptr_t
-vtop(const void *vaddr)
+static inline uintptr_t vtop(const void *vaddr)
 {
     ASSERT(is_kernel_vaddr(vaddr));
 

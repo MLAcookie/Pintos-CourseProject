@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "[P1] compile",
+            "label": "[Lab1] compile",
             "type": "shell",
             "command": "make",
             "options": {
@@ -10,7 +10,7 @@
             }
         },
         {
-            "label": "[P1] Run Test in GDB mode",
+            "label": "[Lab1] Run In GDB Mode",
             "type": "shell",
             "isBackground": true,
             "problemMatcher": [
@@ -31,7 +31,7 @@
                 }
             ],
             "dependsOn": [
-                "[P1] compile"
+                "[Lab1] compile"
             ],
             "command": "../../utils/pintos -v --gdb  -- run ${input:test_name}",
             "options": {
