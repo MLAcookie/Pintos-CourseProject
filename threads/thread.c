@@ -28,6 +28,9 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+// lab1 添加休眠线程队列
+static struct list sleep_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -91,6 +94,8 @@ void thread_init(void)
     lock_init(&tid_lock);
     list_init(&ready_list);
     list_init(&all_list);
+    // lab1 初始化休眠线程队列
+    list_init(&sleep_list);
 
     /* Set up a thread structure for the running thread. */
     initial_thread = running_thread();
@@ -113,6 +118,50 @@ void thread_start(void)
 
     /* Wait for the idle thread to initialize idle_thread. */
     sema_down(&idle_started);
+}
+
+// lab1 添加线程休眠函数 休眠至目标时间刻
+void thread_sleep(int64_t target_ticks)
+{
+    struct thread *cur = thread_current();
+    enum intr_level old_level;
+
+    ASSERT(!intr_context());
+
+    old_level = intr_disable();
+    if (cur != idle_thread)
+        list_push_back(&sleep_list, &cur->elem);
+    cur->status = THREAD_BLOCKED;
+    schedule();
+    intr_set_level(old_level);
+}
+
+// lab1 添加线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
+void thread_wakeup(void)
+{
+    if (list_empty(&sleep_list))
+    {
+        return;
+    }
+    struct list_elem *lp = list_begin(&sleep_list);
+    while (lp != list_tail(&sleep_list))
+    {
+        struct thread *tp = list_entry(lp, struct thread, elem);
+
+        if (tp->sleep_to_target_ticks < timer_ticks())
+        {
+            enum intr_level old_level;
+
+            old_level = intr_disable();
+
+            tp->status = THREAD_READY;
+            list_remove(&tp->elem);
+            list_push_back(&ready_list, &tp->elem);
+
+            intr_set_level(old_level);
+        }
+        lp = lp->next;
+    }
 }
 
 /* Called by the timer interrupt handler at each timer tick.

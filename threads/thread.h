@@ -90,6 +90,8 @@ struct thread
     int priority;              /* Priority. */
     struct list_elem allelem;  /* List element for all threads list. */
 
+    int64_t sleep_to_target_ticks;
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem; /* List element. */
 
@@ -109,6 +111,11 @@ extern bool thread_mlfqs;
 
 void thread_init(void);
 void thread_start(void);
+
+// lab1 添加线程休眠函数 休眠至目标时间刻
+void thread_sleep(int64_t target_ticks);
+// lab1 添加线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
+void thread_wakeup(void);
 
 void thread_tick(void);
 void thread_print_stats(void);

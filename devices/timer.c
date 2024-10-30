@@ -87,8 +87,14 @@ void timer_sleep(int64_t ticks)
     int64_t start = timer_ticks();
 
     ASSERT(intr_get_level() == INTR_ON);
-    while (timer_elapsed(start) < ticks)
-        thread_yield();
+    // while (timer_elapsed(start) < ticks)
+    //     thread_yield();
+
+    // lab1 修改timer_sleep函数实现
+    if (timer_elapsed(start) < ticks)
+    {
+        thread_sleep(start + ticks);
+    }
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -158,6 +164,8 @@ void timer_print_stats(void)
 static void timer_interrupt(struct intr_frame *args UNUSED)
 {
     ticks++;
+    // lab1 到达休眠时间将线程移出休眠队列
+    thread_wakeup();
     thread_tick();
 }
 
