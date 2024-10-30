@@ -90,7 +90,7 @@ struct thread
     int priority;              /* Priority. */
     struct list_elem allelem;  /* List element for all threads list. */
 
-    int64_t sleep_to_target_ticks;
+    int64_t sleep_to_ticks;   // lab1 添加休眠终止时间刻
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem; /* List element. */

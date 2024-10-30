@@ -13,8 +13,8 @@
    function name, plus a user-specific message. */
 #define PANIC(...) debug_panic(__FILE__, __LINE__, __func__, __VA_ARGS__)
 
-void debug_panic(const char *file, int line, const char *function,
-                 const char *message, ...) PRINTF_FORMAT(4, 5) NO_RETURN;
+void debug_panic(const char *file, int line, const char *function, const char *message, ...)
+    PRINTF_FORMAT(4, 5) NO_RETURN;
 void debug_backtrace(void);
 void debug_backtrace_all(void);
 
@@ -26,13 +26,13 @@ void debug_backtrace_all(void);
 #undef NOT_REACHED
 
 #ifndef NDEBUG
-#define ASSERT(CONDITION)                            \
-    if (CONDITION)                                   \
-    {                                                \
-    }                                                \
-    else                                             \
-    {                                                \
-        PANIC("assertion `%s' failed.", #CONDITION); \
+#define ASSERT(CONDITION)                                                                                              \
+    if (CONDITION)                                                                                                     \
+    {                                                                                                                  \
+    }                                                                                                                  \
+    else                                                                                                               \
+    {                                                                                                                  \
+        PANIC("assertion `%s' failed.", #CONDITION);                                                                   \
     }
 #define NOT_REACHED() PANIC("executed an unreachable statement");
 #else

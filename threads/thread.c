@@ -123,24 +123,32 @@ void thread_start(void)
 // lab1 添加线程休眠函数 休眠至目标时间刻
 void thread_sleep(int64_t target_ticks)
 {
-    struct thread *cur = thread_current();
+    struct thread *this_thread = thread_current();
     enum intr_level old_level;
-
     ASSERT(!intr_context());
-
     old_level = intr_disable();
-    if (cur != idle_thread)
-        list_push_back(&sleep_list, &cur->elem);
-    cur->status = THREAD_BLOCKED;
+
+    if (this_thread != idle_thread)
+    {
+        this_thread->sleep_to_ticks = target_ticks;
+        list_push_back(&sleep_list, &this_thread->elem);
+        this_thread->status = THREAD_BLOCKED;
+    }
+
     schedule();
+    debug_backtrace_all();
     intr_set_level(old_level);
 }
 
 // lab1 添加线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
 void thread_wakeup(void)
 {
+    enum intr_level old_level;
+    old_level = intr_disable();
+
     if (list_empty(&sleep_list))
     {
+        intr_set_level(old_level);
         return;
     }
     struct list_elem *lp = list_begin(&sleep_list);
@@ -148,20 +156,20 @@ void thread_wakeup(void)
     {
         struct thread *tp = list_entry(lp, struct thread, elem);
 
-        if (tp->sleep_to_target_ticks < timer_ticks())
+        if (tp->sleep_to_ticks < timer_ticks())
         {
-            enum intr_level old_level;
-
-            old_level = intr_disable();
+            lp = lp->next->next;
 
             tp->status = THREAD_READY;
-            list_remove(&tp->elem);
             list_push_back(&ready_list, &tp->elem);
-
-            intr_set_level(old_level);
         }
-        lp = lp->next;
+        else
+        {
+            lp = lp->next;
+        }
     }
+
+    intr_set_level(old_level);
 }
 
 /* Called by the timer interrupt handler at each timer tick.

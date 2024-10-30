@@ -166,6 +166,7 @@ static void timer_interrupt(struct intr_frame *args UNUSED)
     ticks++;
     // lab1 到达休眠时间将线程移出休眠队列
     thread_wakeup();
+
     thread_tick();
 }
 
