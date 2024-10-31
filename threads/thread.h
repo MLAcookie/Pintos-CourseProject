@@ -112,11 +112,11 @@ extern bool thread_mlfqs;
 void thread_init(void);
 void thread_start(void);
 
-// lab1
+// lab1 线程休眠时间刻比较函数
 bool thread_wakeup_tick_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-// lab1 添加线程休眠函数 休眠至目标时间刻
+// lab1 线程休眠函数 休眠至目标时间刻
 void thread_sleep(int64_t target_ticks);
-// lab1 添加线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
+// lab1 线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
 void thread_wakeup(void);
 
 void thread_tick(void);

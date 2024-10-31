@@ -11,7 +11,6 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
-#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -121,7 +120,7 @@ void thread_start(void)
     sema_down(&idle_started);
 }
 
-// lab1 添加按苏醒时间比较函数
+// lab1 线程休眠时间刻比较函数
 bool thread_wakeup_tick_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
     struct thread *pta = list_entry(a, struct thread, elem);
@@ -129,21 +128,21 @@ bool thread_wakeup_tick_less(const struct list_elem *a, const struct list_elem *
     return pta->wakeup_ticks < ptb->wakeup_ticks;
 }
 
-// lab1 添加线程休眠函数 休眠至目标时间刻
+// lab1 线程休眠函数 休眠至目标时间刻
 void thread_sleep(int64_t target_ticks)
 {
-    struct thread *this_thread = thread_current();
-    this_thread->wakeup_ticks - target_ticks;
+    struct thread *this_thread;
+    this_thread = thread_current();
+    this_thread->wakeup_ticks = target_ticks;
     list_insert_ordered(&sleep_list, &this_thread->elem, thread_wakeup_tick_less, NULL);
     thread_block();
 }
 
-// lab1 添加线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
+// lab1 线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
 void thread_wakeup(void)
 {
     struct list_elem *pe;
     struct thread *pt;
-    bool preempt = false;
 
     while (!list_empty(&sleep_list))
     {
@@ -155,11 +154,6 @@ void thread_wakeup(void)
         }
         list_remove(pe);
         thread_unblock(pt);
-        preempt = true;
-    }
-    if (preempt)
-    {
-        intr_yield_on_return();
     }
 }
 
