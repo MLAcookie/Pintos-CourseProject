@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -120,56 +121,46 @@ void thread_start(void)
     sema_down(&idle_started);
 }
 
+// lab1 添加按苏醒时间比较函数
+bool thread_wakeup_tick_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+{
+    struct thread *pta = list_entry(a, struct thread, elem);
+    struct thread *ptb = list_entry(b, struct thread, elem);
+    return pta->wakeup_ticks < ptb->wakeup_ticks;
+}
+
 // lab1 添加线程休眠函数 休眠至目标时间刻
 void thread_sleep(int64_t target_ticks)
 {
     struct thread *this_thread = thread_current();
-    enum intr_level old_level;
-    ASSERT(!intr_context());
-    old_level = intr_disable();
-
-    if (this_thread != idle_thread)
-    {
-        this_thread->sleep_to_ticks = target_ticks;
-        list_push_back(&sleep_list, &this_thread->elem);
-        this_thread->status = THREAD_BLOCKED;
-    }
-
-    schedule();
-    debug_backtrace_all();
-    intr_set_level(old_level);
+    this_thread->wakeup_ticks - target_ticks;
+    list_insert_ordered(&sleep_list, &this_thread->elem, thread_wakeup_tick_less, NULL);
+    thread_block();
 }
 
 // lab1 添加线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
 void thread_wakeup(void)
 {
-    enum intr_level old_level;
-    old_level = intr_disable();
+    struct list_elem *pe;
+    struct thread *pt;
+    bool preempt = false;
 
-    if (list_empty(&sleep_list))
+    while (!list_empty(&sleep_list))
     {
-        intr_set_level(old_level);
-        return;
+        pe = list_front(&sleep_list);
+        pt = list_entry(pe, struct thread, elem);
+        if (pt->wakeup_ticks > timer_ticks())
+        {
+            break;
+        }
+        list_remove(pe);
+        thread_unblock(pt);
+        preempt = true;
     }
-    struct list_elem *lp = list_begin(&sleep_list);
-    while (lp != list_tail(&sleep_list))
+    if (preempt)
     {
-        struct thread *tp = list_entry(lp, struct thread, elem);
-
-        if (tp->sleep_to_ticks < timer_ticks())
-        {
-            lp = lp->next->next;
-
-            tp->status = THREAD_READY;
-            list_push_back(&ready_list, &tp->elem);
-        }
-        else
-        {
-            lp = lp->next;
-        }
+        intr_yield_on_return();
     }
-
-    intr_set_level(old_level);
 }
 
 /* Called by the timer interrupt handler at each timer tick.
