@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/thread-cmp.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -119,22 +120,13 @@ void thread_start(void)
     /* Wait for the idle thread to initialize idle_thread. */
     sema_down(&idle_started);
 }
-
-// lab1 线程休眠时间刻比较函数
-bool thread_wakeup_tick_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
-    struct thread *pta = list_entry(a, struct thread, elem);
-    struct thread *ptb = list_entry(b, struct thread, elem);
-    return pta->wakeup_ticks < ptb->wakeup_ticks;
-}
-
 // lab1 线程休眠函数 休眠至目标时间刻
 void thread_sleep(int64_t target_ticks)
 {
     struct thread *this_thread;
     this_thread = thread_current();
     this_thread->wakeup_ticks = target_ticks;
-    list_insert_ordered(&sleep_list, &this_thread->elem, thread_wakeup_tick_less, NULL);
+    list_insert_ordered(&sleep_list, &this_thread->elem, thread_cmp_wakeup_tick, NULL);
     thread_block();
 }
 
@@ -270,7 +262,7 @@ void thread_unblock(struct thread *t)
 
     old_level = intr_disable();
     ASSERT(t->status == THREAD_BLOCKED);
-    list_push_back(&ready_list, &t->elem);
+    list_insert_ordered(&ready_list, &t->elem, thread_cmp_priority, NULL);
     t->status = THREAD_READY;
     intr_set_level(old_level);
 }
