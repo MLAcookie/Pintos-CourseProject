@@ -18,7 +18,7 @@
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
-#define THREAD_MAGIC 0xcd6abf4b 
+#define THREAD_MAGIC 0xcd6abf4b
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
@@ -286,6 +286,12 @@ void thread_unblock(struct thread *t)
     // lab1 按优先级插入队列
     list_insert_ordered(&ready_list, &t->elem, thread_more_priority, NULL);
     t->status = THREAD_READY;
+    // lab1 如果有优先级更高的线程，让步当前线程
+    if (thread_get_priority() < list_entry(list_begin(&ready_list), struct thread, elem)->priority)
+    {
+        thread_yield();
+    }
+
     intr_set_level(old_level);
 }
 
