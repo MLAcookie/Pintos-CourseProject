@@ -1,4 +1,15 @@
+param ( 
+    [string]$commitMessage 
+)
+if (-not $commitMessage) {
+    $commitMessage = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss") 
+}
+
+git status
+
 git pull
 git add .
-git commit -m (Get-Date -Format "yyMMdd-HH:mm")
+git commit -m "$commitMessage"
 git push origin HEAD:main
+
+Write-Output "Sync Complete"

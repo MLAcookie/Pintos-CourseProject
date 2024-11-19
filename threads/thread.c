@@ -286,11 +286,6 @@ void thread_unblock(struct thread *t)
     // lab1 按优先级插入队列
     list_insert_ordered(&ready_list, &t->elem, thread_more_priority, NULL);
     t->status = THREAD_READY;
-    // lab1 如果有优先级更高的线程，让步当前线程
-    if (thread_get_priority() < list_entry(list_begin(&ready_list), struct thread, elem)->priority)
-    {
-        thread_yield();
-    }
 
     intr_set_level(old_level);
 }
@@ -408,19 +403,16 @@ int thread_get_priority(void)
 }
 
 /* Sets the current thread's nice value to NICE. */
-void thread_set_nice(int new_nice)
+void thread_set_nice(int nice UNUSED)
 {
-    // 断言限制niceness范围
-    ASSERT(NICENESS_MIN <= new_nice && new_nice <= NICENESS_MAX);
-
-    thread_current()->niceness = new_nice;
+    /* Not yet implemented. */
 }
 
 /* Returns the current thread's nice value. */
 int thread_get_nice(void)
 {
-    // lab1 返回线程nice
-    return thread_current()->niceness;
+    /* Not yet implemented. */
+    return 0;
 }
 
 /* Returns 100 times the system load average. */
