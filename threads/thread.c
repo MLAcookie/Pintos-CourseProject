@@ -284,7 +284,9 @@ void thread_unblock(struct thread *t)
     old_level = intr_disable();
     ASSERT(t->status == THREAD_BLOCKED);
     // lab1 按优先级插入队列
-    list_insert_ordered(&ready_list, &t->elem, thread_more_priority, NULL);
+    // lab1 考虑到运行时优先级会更改，所以需要排序
+    list_push_back(&ready_list, &t->elem);
+    list_sort(&ready_list, thread_more_priority, NULL);
     t->status = THREAD_READY;
 
     intr_set_level(old_level);
@@ -350,10 +352,11 @@ void thread_yield(void)
     ASSERT(!intr_context());
     old_level = intr_disable();
     // lab1 增加按优先级插入
+    // lab1 考虑运行时优先级更改行为，所以更改为压入队列后排序
     if (cur != idle_thread)
     {
-        // list_push_back(&ready_list, &cur->elem);
-        list_insert_ordered(&ready_list, &cur->elem, thread_more_priority, NULL);
+        list_push_back(&ready_list, &cur->elem);
+        list_sort(&ready_list, thread_more_priority, NULL);
     }
     cur->status = THREAD_READY;
     schedule();
@@ -381,7 +384,23 @@ void thread_set_priority(int new_priority)
     // 断言限制优先级范围
     ASSERT(PRI_MIN <= new_priority && new_priority <= PRI_MAX);
 
-    thread_current()->priority = new_priority;
+    enum intr_level old_level = intr_disable();
+
+    struct thread *cur = thread_current();
+    if (list_empty(&cur->donor_list))
+    {
+        cur->priority = new_priority;
+        cur->base_priority = new_priority;
+    }
+    else if (new_priority > cur->priority)
+    {
+        cur->priority = new_priority;
+        cur->base_priority = new_priority;
+    }
+    else
+    {
+        cur->base_priority = new_priority;
+    }
     // lab1 对准备队列重排序
     list_sort(&ready_list, thread_more_priority, NULL);
     // 检查是否有更高优先级的线程，有的话就让步
@@ -394,6 +413,8 @@ void thread_set_priority(int new_priority)
             thread_yield();
         }
     }
+
+    intr_set_level(old_level);
 }
 
 /* Returns the current thread's priority. */
@@ -512,6 +533,9 @@ static void init_thread(struct thread *t, const char *name, int priority)
     t->priority = priority;
     // lab1 添加初始化基础优先级
     t->base_priority = priority;
+    // lab1 添加初始化优先级借用列表
+    list_init(&t->donor_list);
+    t->wait_on_lock = NULL;
     t->magic = THREAD_MAGIC;
 
     old_level = intr_disable();

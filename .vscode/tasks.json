@@ -10,7 +10,7 @@
             }
         },
         {
-            "label": "[Lab1] Run In GDB Mode",
+            "label": "[Lab1] Run In Default Scheduler",
             "type": "shell",
             "isBackground": true,
             "problemMatcher": [
@@ -33,7 +33,36 @@
             "dependsOn": [
                 "[Lab1] compile"
             ],
-            "command": "../../utils/pintos -v --gdb  -- run ${input:test_name}",
+            "command": "../../utils/pintos -v -k --gdb -- run ${input:test_name}",
+            "options": {
+                "cwd": "${workspaceFolder}/threads/build"
+            }
+        },
+        {
+            "label": "[Lab1] Run In Advance Scheduler",
+            "type": "shell",
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ],
+            "dependsOn": [
+                "[Lab1] compile"
+            ],
+            "command": "../../utils/pintos -v -k --gdb -- -mlfqs run ${input:test_name}",
             "options": {
                 "cwd": "${workspaceFolder}/threads/build"
             }

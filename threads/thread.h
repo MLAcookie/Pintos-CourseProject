@@ -85,18 +85,23 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
 struct thread
 {
     /* Owned by thread.c. */
-    tid_t tid;                 /* Thread identifier. */
-    enum thread_status status; /* Thread state. */
-    char name[16];             /* Name (for debugging purposes). */
-    uint8_t *stack;            /* Saved stack pointer. */
-    int priority;              /* Priority. */
+    tid_t tid;                 // Thread identifier.
+    enum thread_status status; // Thread state.
+    char name[16];             // Name (for debugging purposes).
+    uint8_t *stack;            // Saved stack pointer.
+    int priority;              // Priority.
     int base_priority;         // lab1 添加基础优先级
-    struct list_elem allelem;  /* List element for all threads list. */
+    struct list_elem allelem;  // List element for all threads list.
 
     int wakeup_ticks; // lab1 添加休眠终止时间刻
+
+    struct lock *wait_on_lock;   // lab1 等待的锁
+    struct list donor_list;      // lab1 优先级借用列表
+    struct list_elem donor_elem; // lab1 优先级借用成员
 
     int niceness;   // lab1 高级调度部分的东西
     int recent_cpu; // lab1 高级调度的东西
