@@ -156,11 +156,12 @@ static void sema_test_helper(void *sema_)
     }
 }
 
-// lab1 获取lock的holder的线程
-struct thread *lock_get_holder_thread(struct lock *lock)
+// lab1 lock最高优先级比较
+bool lock_less_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
-    ASSERT(lock != NULL);
-    return lock->holder;
+    struct lock *plock_a = list_entry(a, struct lock, elem);
+    struct lock *plock_b = list_entry(b, struct lock, elem);
+    return plock_a->max_priority < plock_b->max_priority;
 }
 
 /* Initializes LOCK.  A lock can be held by at most a single
@@ -200,35 +201,34 @@ void lock_acquire(struct lock *lock)
     ASSERT(!intr_context());
     ASSERT(!lock_held_by_current_thread(lock));
 
-    enum intr_level old_level = intr_disable();
-
-    // lab1 如果这个锁已经有主了，那么当前线程就记录等待的锁
+    // lab1 如果这个锁已经有主了，那么更新锁链条的信息
+    struct thread *cur = thread_current();
     if (lock->holder != NULL)
     {
-        struct thread *pt = thread_current();
-        pt->wait_on_lock = lock;
+        cur->wait_on_lock = lock;
 
-        list_push_back(&lock_get_holder_thread(lock)->donor_list, &pt->donor_elem);
-
-        while (pt->wait_on_lock != NULL)
+        struct lock *p_lock = lock;
+        while (p_lock != NULL && cur->priority > p_lock->max_priority)
         {
-            struct thread *plt = lock_get_holder_thread(pt->wait_on_lock);
-            if (pt->priority > plt->priority)
+            p_lock->max_priority = cur->priority;
+            struct list_elem *max_priority_lock = list_max(&p_lock->holder->lock_list, lock_less_priority, NULL);
+            int max_priority = list_entry(max_priority_lock, struct lock, elem)->max_priority;
+            if (p_lock->holder->priority < max_priority)
             {
-                plt->priority = pt->priority;
-                pt = plt;
+                p_lock->holder->priority = max_priority;
             }
+            p_lock = p_lock->holder->wait_on_lock;
         }
     }
+    // lab1 没有的话就更新到锁和线程的信息
     else
     {
-        thread_current()->wait_on_lock = NULL;
+        cur->wait_on_lock = NULL;
+        lock->max_priority = cur->priority;
+        list_push_back(&cur->lock_list, &lock->elem);
     }
-
     sema_down(&lock->semaphore);
-    lock->holder = thread_current();
-    
-    intr_set_level(old_level);
+    lock->holder = cur;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -262,46 +262,19 @@ void lock_release(struct lock *lock)
     ASSERT(lock != NULL);
     ASSERT(lock_held_by_current_thread(lock));
 
-    enum intr_level old_level = intr_disable();
+    struct thread *cur = thread_current();
+    list_remove(&lock->elem);
+    int max_priority = cur->base_priority;
+    if (thread_is_holding_lock())
+    {
+        struct list_elem *max_priority_lock = list_max(&cur->lock_list, lock_less_priority, NULL);
+        int priority = list_entry(max_priority_lock, struct lock, elem)->max_priority;
+        max_priority = priority > max_priority ? priority : max_priority;
+    }
+    cur->priority = max_priority;
 
     lock->holder = NULL;
     sema_up(&lock->semaphore);
-
-    // lab1 处理锁释放时的优先级借用链
-    struct thread *cur = thread_current();
-    if (!list_empty(&cur->donor_list))
-    {
-        for (struct list_elem *pd = list_begin(&cur->donor_list); pd != list_end(&cur->donor_list); pd = list_next(pd))
-        {
-            struct thread *pt = list_entry(pd, struct thread, donor_elem);
-            if (pt->wait_on_lock == lock)
-            {
-                list_remove(pd);
-                pt->wait_on_lock = NULL;
-            }
-        }
-        if (!list_empty(&cur->donor_list))
-        {
-            struct list_elem *max_donor = list_max(&cur->donor_list, thread_more_priority, NULL);
-            struct thread *max_donor_thread = list_entry(max_donor, struct thread, donor_elem);
-
-            if (cur->base_priority > max_donor_thread->priority)
-            {
-                thread_set_priority(cur->base_priority);
-            }
-            else
-            {
-                cur->priority = max_donor_thread->priority;
-                thread_yield();
-            }
-        }
-    }
-    else
-    {
-        thread_set_priority(cur->base_priority);
-    }
-
-    intr_set_level(old_level);
 }
 
 /* Returns true if the current thread holds LOCK, false
@@ -324,13 +297,13 @@ struct semaphore_elem
 // lab1 添加条件的比较函数
 bool condition_more_thread_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
-    struct semaphore_elem *psa = list_entry(a, struct semaphore_elem, elem);
-    struct semaphore_elem *psb = list_entry(b, struct semaphore_elem, elem);
+    struct semaphore_elem *p_sema_a = list_entry(a, struct semaphore_elem, elem);
+    struct semaphore_elem *p_sema_b = list_entry(b, struct semaphore_elem, elem);
 
-    struct thread *pta = list_entry(list_front(&psa->semaphore.waiters), struct thread, elem);
-    struct thread *ptb = list_entry(list_front(&psb->semaphore.waiters), struct thread, elem);
+    struct thread *p_thread_a = list_entry(list_front(&p_sema_a->semaphore.waiters), struct thread, elem);
+    struct thread *p_thread_b = list_entry(list_front(&p_sema_b->semaphore.waiters), struct thread, elem);
 
-    return pta->priority > ptb->priority;
+    return p_thread_a->priority > p_thread_b->priority;
 }
 
 /* Initializes condition variable COND.  A condition variable

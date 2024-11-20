@@ -99,9 +99,8 @@ struct thread
 
     int wakeup_ticks; // lab1 添加休眠终止时间刻
 
-    struct lock *wait_on_lock;   // lab1 等待的锁
-    struct list donor_list;      // lab1 优先级借用列表
-    struct list_elem donor_elem; // lab1 优先级借用成员
+    struct lock *wait_on_lock; // lab1 等待的锁
+    struct list lock_list;     // lab1 锁列表
 
     int niceness;   // lab1 高级调度部分的东西
     int recent_cpu; // lab1 高级调度的东西
@@ -127,6 +126,8 @@ extern bool thread_mlfqs;
 bool thread_less_wakeup_tick(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 // lab1 线程优先级比较函数
 bool thread_more_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+// lab1 当前线程是否等待锁
+bool thread_is_holding_lock(void);
 
 void thread_init(void);
 void thread_start(void);

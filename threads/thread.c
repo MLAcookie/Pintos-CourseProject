@@ -77,17 +77,24 @@ static tid_t allocate_tid(void);
 // lab1 线程休眠时间刻比较函数
 bool thread_less_wakeup_tick(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
-    struct thread *pta = list_entry(a, struct thread, elem);
-    struct thread *ptb = list_entry(b, struct thread, elem);
-    return pta->wakeup_ticks < ptb->wakeup_ticks;
+    struct thread *p_thread_a = list_entry(a, struct thread, elem);
+    struct thread *p_thread_b = list_entry(b, struct thread, elem);
+    return p_thread_a->wakeup_ticks < p_thread_b->wakeup_ticks;
 }
 
 // lab1 线程优先级比较函数
 bool thread_more_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
-    struct thread *pta = list_entry(a, struct thread, elem);
-    struct thread *ptb = list_entry(b, struct thread, elem);
-    return pta->priority > ptb->priority;
+    struct thread *p_thread_a = list_entry(a, struct thread, elem);
+    struct thread *p_thread_b = list_entry(b, struct thread, elem);
+    return p_thread_a->priority > p_thread_b->priority;
+}
+
+// lab1 当前线程是否等待锁
+bool thread_is_holding_lock(void)
+{
+    struct thread *cur = thread_current();
+    return !list_empty(&cur->lock_list);
 }
 
 /* Initializes the threading system by transforming the code
@@ -148,19 +155,19 @@ void thread_sleep(int64_t target_ticks)
 // lab1 线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
 void thread_wakeup(void)
 {
-    struct list_elem *pe;
-    struct thread *pt;
+    struct list_elem *p_elem;
+    struct thread *p_thread;
 
     while (!list_empty(&sleep_list))
     {
-        pe = list_front(&sleep_list);
-        pt = list_entry(pe, struct thread, elem);
-        if (pt->wakeup_ticks > timer_ticks())
+        p_elem = list_front(&sleep_list);
+        p_thread = list_entry(p_elem, struct thread, elem);
+        if (p_thread->wakeup_ticks > timer_ticks())
         {
             break;
         }
-        list_remove(pe);
-        thread_unblock(pt);
+        list_remove(p_elem);
+        thread_unblock(p_thread);
     }
 }
 
@@ -384,37 +391,13 @@ void thread_set_priority(int new_priority)
     // 断言限制优先级范围
     ASSERT(PRI_MIN <= new_priority && new_priority <= PRI_MAX);
 
-    enum intr_level old_level = intr_disable();
-
     struct thread *cur = thread_current();
-    if (list_empty(&cur->donor_list))
+    cur->base_priority = new_priority;
+    if (!thread_is_holding_lock() || new_priority > cur->priority)
     {
         cur->priority = new_priority;
-        cur->base_priority = new_priority;
+        thread_yield();
     }
-    else if (new_priority > cur->priority)
-    {
-        cur->priority = new_priority;
-        cur->base_priority = new_priority;
-    }
-    else
-    {
-        cur->base_priority = new_priority;
-    }
-    // lab1 对准备队列重排序
-    list_sort(&ready_list, thread_more_priority, NULL);
-    // 检查是否有更高优先级的线程，有的话就让步
-    if (!list_empty(&ready_list))
-    {
-        struct list_elem *pe = list_front(&ready_list);
-        struct thread *pt = list_entry(pe, struct thread, elem);
-        if (pt->priority > thread_current()->priority)
-        {
-            thread_yield();
-        }
-    }
-
-    intr_set_level(old_level);
 }
 
 /* Returns the current thread's priority. */
@@ -534,7 +517,7 @@ static void init_thread(struct thread *t, const char *name, int priority)
     // lab1 添加初始化基础优先级
     t->base_priority = priority;
     // lab1 添加初始化优先级借用列表
-    list_init(&t->donor_list);
+    list_init(&t->lock_list);
     t->wait_on_lock = NULL;
     t->magic = THREAD_MAGIC;
 
