@@ -10,6 +10,14 @@
             }
         },
         {
+            "label": "[Lab2] compile",
+            "type": "shell",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceFolder}/userprog"
+            }
+        },
+        {
             "label": "[Lab1] Run In Default Scheduler",
             "type": "shell",
             "isBackground": true,
@@ -66,7 +74,36 @@
             "options": {
                 "cwd": "${workspaceFolder}/threads/build"
             }
-        }
+        },
+        {
+            "label": "[Lab2] Run",
+            "type": "shell",
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ],
+            "dependsOn": [
+                "[Lab2] compile"
+            ],
+            "command": "../../utils/pintos -v -k --gdb -- run ${input:test_name}",
+            "options": {
+                "cwd": "${workspaceFolder}/threads/build"
+            }
+        }  
     ],
     "inputs": [
         {

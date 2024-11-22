@@ -103,7 +103,7 @@ struct thread
     struct lock *wait_on_lock; // lab1 等待的锁
     struct list lock_list;     // lab1 锁列表
 
-    int niceness;   // lab1 高级调度 线程的好心程度
+    int niceness;  // lab1 高级调度 线程的好心程度
     fp recent_cpu; // lab1 高级调度 线程使用的cpu时间
 
     /* Shared between thread.c and synch.c. */
@@ -138,7 +138,7 @@ void thread_mlfqs_refresh_load_avg(void);
 bool thread_less_wakeup_tick(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 // lab1 线程优先级比较函数
 bool thread_more_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-// lab1 当前线程是否等待锁
+// lab1 当前线程是否持有锁
 bool thread_is_holding_lock(void);
 
 void thread_init(void);

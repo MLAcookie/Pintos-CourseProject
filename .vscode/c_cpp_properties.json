@@ -1,11 +1,23 @@
 {
     "configurations": [
         {
-            "name": "Linux",
+            "name": "Lab1",
             "includePath": [
                 "${workspaceFolder}/**"
             ],
             "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "ms-vscode.makefile-tools"
+        },
+        {
+            "name": "Lab2",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": ["USERPROG"],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "gnu++17",

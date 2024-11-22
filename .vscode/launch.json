@@ -61,6 +61,35 @@
                 "loadAll": true,
                 "exceptionList": ""
             }
+        },
+        {
+            "name": "[Lab2] Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/threads/build/kernel.o",
+            "miDebuggerServerAddress": "127.0.0.1:1234",
+            "preLaunchTask": "[Lab2] Run",
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "description": "Enable pretty-printing for gdb",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "source -v ${workspaceFolder}/misc/gdb-macros",
+                    "description": "Import Pintos GDB macros file",
+                    "ignoreFailures": false
+                }
+            ],
+            "symbolLoadInfo": {
+                "loadAll": true,
+                "exceptionList": ""
+            }
         }
     ]
 }

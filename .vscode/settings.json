@@ -5,9 +5,11 @@
         "timer.h": "c",
         "thread.h": "c",
         "inttypes.h": "c",
-        "debug.h": "c"
+        "debug.h": "c",
+        "directory.h": "c"
     },
     "C_Cpp.clang_format_sortIncludes": false,
     "C_Cpp.clang_format_fallbackStyle": "Microsoft",
-    "C_Cpp.clang_format_style": "Microsoft"
+    "C_Cpp.clang_format_style": "Microsoft",
+    "makefile.makefilePath": ""
 }

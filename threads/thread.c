@@ -93,7 +93,7 @@ bool thread_more_priority(const struct list_elem *a, const struct list_elem *b, 
     return p_thread_a->priority > p_thread_b->priority;
 }
 
-// lab1 当前线程是否等待锁
+// lab1 当前线程是否持有锁
 bool thread_is_holding_lock(void)
 {
     struct thread *cur = thread_current();
