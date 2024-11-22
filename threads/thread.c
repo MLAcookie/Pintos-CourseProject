@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/fp.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -61,6 +62,8 @@ static unsigned thread_ticks; /* # of timer ticks since last yield. */
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
+// lab1 高级调度 系统负载
+fp thread_load_avg;
 
 static void kernel_thread(thread_func *, void *aux);
 
@@ -95,6 +98,68 @@ bool thread_is_holding_lock(void)
 {
     struct thread *cur = thread_current();
     return !list_empty(&cur->lock_list);
+}
+
+// lab1 高级调度 基于nice与recent_cpu计算线程优先级
+void thread_mlfqs_refresh_priority(struct thread *t)
+{
+    if (t == idle_thread)
+    {
+        return;
+    }
+    fp f_priority = fp_convert_from(PRI_MAX);
+    // 1/4 * recent_cpu
+    fp f_a = fp_div_int(t->recent_cpu, 4);
+    // 2*niceness
+    fp f_b = fp_convert_from(t->niceness);
+    f_b = fp_mul_int(f_b, 2);
+    // PRI_MAX - 1/4 * recent_cpu - 2 * niceness
+    fp f_ans = fp_sub_fp(f_priority, f_a);
+    f_ans = fp_sub_fp(f_ans, f_b);
+
+    t->priority = fp_toint_round(f_ans);
+}
+
+// lab1 高级调度 当前线程recent_cpu自增1
+void thread_mlfqs_increase_recent_cpu(void)
+{
+    struct thread *cur = thread_current();
+    if (cur == idle_thread)
+    {
+        return;
+    }
+    cur->recent_cpu = fp_add_int(cur->recent_cpu, 1);
+}
+
+// lab1 高级调度 计算线程最近cpu使用率
+void thread_mlfqs_refresh_recent_cpu(struct thread *t)
+{
+    if (t == idle_thread)
+    {
+        return;
+    }
+    // (2 * load_avg) / (2 * laod_avg + 1) * recent_cpu
+    fp f_a = fp_mul_int(thread_load_avg, 2);
+    f_a = fp_div_fp(f_a, fp_add_int(f_a, 1));
+    f_a = fp_mul_fp(f_a, t->recent_cpu);
+    fp f_niceness = fp_convert_from(t->niceness);
+    // (2 * load_avg) / (2 * laod_avg + 1) * recent_cpu + niceness
+    t->recent_cpu = fp_add_fp(f_a, f_niceness);
+}
+
+// lab1 高级调度 计算系统使用负载
+void thread_mlfqs_refresh_load_avg(void)
+{
+    // 59/60 * load_avg
+    fp f_a = fp_convert_from(59);
+    f_a = fp_div_int(f_a, 60);
+    f_a = fp_mul_fp(f_a, thread_load_avg);
+    // 1/60 * ready_threads
+    fp f_b = fp_convert_from(1);
+    f_b = fp_div_int(f_b, 60);
+    f_b = fp_mul_int(f_b, list_size(&all_list) - list_size(&sleep_list) - 1);
+    // 59/60 * load_avg + 1/60 * ready_threads
+    thread_load_avg = fp_add_fp(f_a, f_b);
 }
 
 /* Initializes the threading system by transforming the code
@@ -145,10 +210,10 @@ void thread_start(void)
 // lab1 线程休眠函数 休眠至目标时间刻
 void thread_sleep(int64_t target_ticks)
 {
-    struct thread *this_thread;
-    this_thread = thread_current();
-    this_thread->wakeup_ticks = target_ticks;
-    list_insert_ordered(&sleep_list, &this_thread->elem, thread_less_wakeup_tick, NULL);
+    struct thread *cur;
+    cur = thread_current();
+    cur->wakeup_ticks = target_ticks;
+    list_insert_ordered(&sleep_list, &cur->elem, thread_less_wakeup_tick, NULL);
     thread_block();
 }
 
@@ -407,30 +472,30 @@ int thread_get_priority(void)
 }
 
 /* Sets the current thread's nice value to NICE. */
-void thread_set_nice(int nice UNUSED)
+void thread_set_nice(int nice)
 {
-    /* Not yet implemented. */
+    struct thread *cur = thread_current();
+    cur->niceness = nice;
+    thread_mlfqs_refresh_priority(cur);
+    thread_yield();
 }
 
 /* Returns the current thread's nice value. */
 int thread_get_nice(void)
 {
-    /* Not yet implemented. */
-    return 0;
+    return thread_current()->niceness;
 }
 
 /* Returns 100 times the system load average. */
 int thread_get_load_avg(void)
 {
-    /* Not yet implemented. */
-    return 0;
+    return fp_toint_round(fp_mul_int(thread_load_avg, 100));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int thread_get_recent_cpu(void)
 {
-    /* Not yet implemented. */
-    return 0;
+    return fp_toint_round(fp_mul_int(thread_current()->recent_cpu, 100));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -546,9 +611,13 @@ static void *alloc_frame(struct thread *t, size_t size)
 static struct thread *next_thread_to_run(void)
 {
     if (list_empty(&ready_list))
+    {
         return idle_thread;
+    }
     else
+    {
         return list_entry(list_pop_front(&ready_list), struct thread, elem);
+    }
 }
 
 /* Completes a thread switch by activating the new thread's page

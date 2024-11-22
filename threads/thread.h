@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/fp.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -24,7 +25,7 @@ typedef int tid_t;
 #define PRI_DEFAULT 31 /* Default priority. */
 #define PRI_MAX 63     /* Highest priority. */
 
-// lab1 niceness部分
+// lab1 高级调度 niceness部分
 #define NICENESS_MIN -20
 #define NICENESS_DEFAULT 0
 #define NICENESS_MAX 20
@@ -102,8 +103,8 @@ struct thread
     struct lock *wait_on_lock; // lab1 等待的锁
     struct list lock_list;     // lab1 锁列表
 
-    int niceness;   // lab1 高级调度部分的东西
-    int recent_cpu; // lab1 高级调度的东西
+    int niceness;   // lab1 高级调度 线程的好心程度
+    fp recent_cpu; // lab1 高级调度 线程使用的cpu时间
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem; /* List element. */
@@ -121,6 +122,17 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+// lab1 高级调度 系统负载
+extern fp thread_load_avg;
+
+// lab1 高级调度 基于nice与recent_cpu计算线程优先级
+void thread_mlfqs_refresh_priority(struct thread *t);
+// lab1 高级调度 当前线程recent_cpu自增1
+void thread_mlfqs_increase_recent_cpu(void);
+// lab1 高级调度 计算线程最近cpu使用率
+void thread_mlfqs_refresh_recent_cpu(struct thread *t);
+// lab1 高级调度 计算系统使用负载
+void thread_mlfqs_refresh_load_avg(void);
 
 // lab1 线程休眠时间刻比较函数
 bool thread_less_wakeup_tick(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);

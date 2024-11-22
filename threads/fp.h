@@ -5,6 +5,7 @@
 
 #define FP_CONST 16384
 
+// lab1 提示自己是浮点数
 typedef int fp;
 
 // int -> fp

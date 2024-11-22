@@ -187,20 +187,9 @@ void lock_init(struct lock *lock)
     sema_init(&lock->semaphore, 1);
 }
 
-/* Acquires LOCK, sleeping until it becomes available if
-   necessary.  The lock must not already be held by the current
-   thread.
-
-   This function may sleep, so it must not be called within an
-   interrupt handler.  This function may be called with
-   interrupts disabled, but interrupts will be turned back on if
-   we need to sleep. */
-void lock_acquire(struct lock *lock)
+// lab1 锁占用的优先级借用单独列出来
+void lock_acquire_priority_donation(struct lock *lock)
 {
-    ASSERT(lock != NULL);
-    ASSERT(!intr_context());
-    ASSERT(!lock_held_by_current_thread(lock));
-
     // lab1 如果这个锁已经有主了，那么更新锁链条的信息
     struct thread *cur = thread_current();
     if (lock->holder != NULL)
@@ -208,6 +197,7 @@ void lock_acquire(struct lock *lock)
         cur->wait_on_lock = lock;
 
         struct lock *p_lock = lock;
+        // lab1 处理嵌套锁的优先级借用情况
         while (p_lock != NULL && cur->priority > p_lock->max_priority)
         {
             p_lock->max_priority = cur->priority;
@@ -227,8 +217,30 @@ void lock_acquire(struct lock *lock)
         lock->max_priority = cur->priority;
         list_push_back(&cur->lock_list, &lock->elem);
     }
+}
+
+/* Acquires LOCK, sleeping until it becomes available if
+   necessary.  The lock must not already be held by the current
+   thread.
+
+   This function may sleep, so it must not be called within an
+   interrupt handler.  This function may be called with
+   interrupts disabled, but interrupts will be turned back on if
+   we need to sleep. */
+void lock_acquire(struct lock *lock)
+{
+    ASSERT(lock != NULL);
+    ASSERT(!intr_context());
+    ASSERT(!lock_held_by_current_thread(lock));
+
+    // lab1 高级调度不需要优先级借用
+    if (!thread_mlfqs)
+    {
+        lock_acquire_priority_donation(lock);
+    }
+
     sema_down(&lock->semaphore);
-    lock->holder = cur;
+    lock->holder = thread_current();
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -252,16 +264,10 @@ bool lock_try_acquire(struct lock *lock)
     return success;
 }
 
-/* Releases LOCK, which must be owned by the current thread.
-
-   An interrupt handler cannot acquire a lock, so it does not
-   make sense to try to release a lock within an interrupt
-   handler. */
-void lock_release(struct lock *lock)
+// lab1 锁释放的优先级借用单独列出来
+void lock_release_priority_donation(struct lock *lock)
 {
-    ASSERT(lock != NULL);
-    ASSERT(lock_held_by_current_thread(lock));
-
+    // lab1 添加锁释放时的处理
     struct thread *cur = thread_current();
     list_remove(&lock->elem);
     int max_priority = cur->base_priority;
@@ -272,6 +278,23 @@ void lock_release(struct lock *lock)
         max_priority = priority > max_priority ? priority : max_priority;
     }
     cur->priority = max_priority;
+}
+
+/* Releases LOCK, which must be owned by the current thread.
+
+   An interrupt handler cannot acquire a lock, so it does not
+   make sense to try to release a lock within an interrupt
+   handler. */
+void lock_release(struct lock *lock)
+{
+    ASSERT(lock != NULL);
+    ASSERT(lock_held_by_current_thread(lock));
+
+    // lab1 高级调度不需要优先级借用
+    if (!thread_mlfqs)
+    {
+        lock_release_priority_donation(lock);
+    }
 
     lock->holder = NULL;
     sema_up(&lock->semaphore);

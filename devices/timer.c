@@ -84,13 +84,6 @@ int64_t timer_elapsed(int64_t then)
    be turned on. */
 void timer_sleep(int64_t ticks)
 {
-    // 原始代码
-    // int64_t start = timer_ticks();
-    // enum intr_level old_level;
-    // ASSERT(intr_get_level() == INTR_ON);
-    // while (timer_elapsed(start) < ticks)
-    //     thread_yield();
-
     // lab1 修改timer_sleep函数实现
     enum intr_level old_level;
     ASSERT(intr_get_level() == INTR_ON);
@@ -171,6 +164,21 @@ static void timer_interrupt(struct intr_frame *args UNUSED)
     thread_tick();
     // lab1 将到达休眠时间将线程移出休眠队列
     thread_wakeup();
+
+    // lab1 高级调度
+    if (thread_mlfqs)
+    {
+        thread_mlfqs_increase_recent_cpu();
+        if (timer_ticks() % TIMER_FREQ == 0)
+        {
+            thread_mlfqs_refresh_load_avg();
+            thread_foreach(thread_mlfqs_refresh_recent_cpu, NULL);
+        }
+        if (timer_ticks() % 4 == 0)
+        {
+            thread_foreach(thread_mlfqs_refresh_priority, NULL);
+        }
+    }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
