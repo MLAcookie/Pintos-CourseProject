@@ -118,7 +118,10 @@ void sema_up(struct semaphore *sema)
     sema->value++;
     intr_set_level(old_level);
 
+    //这个宏是一定要判断的，不然lab2内核会炸 
+#ifdef THREAD
     thread_yield();
+#endif
 }
 
 static void sema_test_helper(void *sema_);
@@ -233,11 +236,13 @@ void lock_acquire(struct lock *lock)
     ASSERT(!intr_context());
     ASSERT(!lock_held_by_current_thread(lock));
 
+#ifdef THREAD
     // lab1 高级调度不需要优先级借用
     if (!thread_mlfqs)
     {
         lock_acquire_priority_donation(lock);
     }
+#endif
 
     sema_down(&lock->semaphore);
     lock->holder = thread_current();
@@ -290,11 +295,13 @@ void lock_release(struct lock *lock)
     ASSERT(lock != NULL);
     ASSERT(lock_held_by_current_thread(lock));
 
+#ifdef THREAD
     // lab1 高级调度不需要优先级借用
     if (!thread_mlfqs)
     {
         lock_release_priority_donation(lock);
     }
+#endif
 
     lock->holder = NULL;
     sema_up(&lock->semaphore);
