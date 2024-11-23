@@ -101,7 +101,7 @@
             ],
             "command": "../../utils/pintos -v -k --gdb -- run ${input:test_name}",
             "options": {
-                "cwd": "${workspaceFolder}/threads/build"
+                "cwd": "${workspaceFolder}/userprog/build"
             }
         }  
     ],

@@ -584,6 +584,8 @@ static void init_thread(struct thread *t, const char *name, int priority)
     // lab1 添加初始化优先级借用列表
     list_init(&t->lock_list);
     t->wait_on_lock = NULL;
+    // lab2 初始化信号量
+    sema_init(&t->child_load_sema, 0);
     t->magic = THREAD_MAGIC;
 
     old_level = intr_disable();

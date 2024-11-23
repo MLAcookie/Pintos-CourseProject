@@ -106,6 +106,10 @@ struct thread
     int niceness;  // lab1 高级调度 线程的好心程度
     fp recent_cpu; // lab1 高级调度 线程使用的cpu时间
 
+    struct thread *parent_thread;      // lab2 父线程
+    struct semaphore *child_load_sema; // lab2 子线程加载信号量
+    int exit_error;                    // lab2 错误退出代码
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem; /* List element. */
 

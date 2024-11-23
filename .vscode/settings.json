@@ -6,7 +6,13 @@
         "thread.h": "c",
         "inttypes.h": "c",
         "debug.h": "c",
-        "directory.h": "c"
+        "directory.h": "c",
+        "cstdlib": "c",
+        "syscall.h": "c",
+        "syscall-nr.h": "c",
+        "string.h": "c",
+        "*.inc": "c",
+        "atomic": "c"
     },
     "C_Cpp.clang_format_sortIncludes": false,
     "C_Cpp.clang_format_fallbackStyle": "Microsoft",

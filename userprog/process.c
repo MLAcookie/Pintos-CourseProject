@@ -28,6 +28,7 @@ static bool load(const char *cmdline, void (**eip)(void), void **esp);
 tid_t process_execute(const char *file_name)
 {
     char *fn_copy;
+    char *thread_name;
     tid_t tid;
 
     /* Make a copy of FILE_NAME.
@@ -37,8 +38,14 @@ tid_t process_execute(const char *file_name)
         return TID_ERROR;
     strlcpy(fn_copy, file_name, PGSIZE);
 
+    // lab2 获取传入命令的第一串字符
+    char *save_ptr;
+    thread_name = malloc(strlen(file_name) + 1);
+    strlcpy(thread_name, file_name, strlen(file_name) + 1);
+    thread_name = strtok_r(thread_name, " ", &save_ptr);
+
     /* Create a new thread to execute FILE_NAME. */
-    tid = thread_create(file_name, PRI_DEFAULT, start_process, fn_copy);
+    tid = thread_create(thread_name, PRI_DEFAULT, start_process, fn_copy);
     if (tid == TID_ERROR)
         palloc_free_page(fn_copy);
     return tid;
@@ -62,7 +69,12 @@ static void start_process(void *file_name_)
     /* If load failed, quit. */
     palloc_free_page(file_name);
     if (!success)
+    {
         thread_exit();
+    }
+    else
+    {
+    }
 
     /* Start the user process by simulating a return from an
        interrupt, implemented by intr_exit (in
@@ -93,6 +105,9 @@ void process_exit(void)
 {
     struct thread *cur = thread_current();
     uint32_t *pd;
+
+    int exit_code = cur->exit_error;
+    printf("%s: exit(%d)\n", cur->name, exit_code);
 
     /* Destroy the current process's page directory and switch back
        to the kernel-only page directory. */

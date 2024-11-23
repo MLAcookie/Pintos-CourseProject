@@ -17,7 +17,10 @@
             "includePath": [
                 "${workspaceFolder}/**"
             ],
-            "defines": ["USERPROG"],
+            "defines": [
+                "USERPROG",
+                "FILESYS"
+            ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
