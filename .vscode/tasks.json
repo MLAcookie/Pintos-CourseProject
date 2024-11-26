@@ -10,11 +10,47 @@
             }
         },
         {
+            "label": "[Lab1] Clean",
+            "group": "build",
+            "type": "shell",
+            "command": "make clean",
+            "options": {
+                "cwd": "${workspaceFolder}/threads"
+            }
+        },
+        {
+            "label": "[Lab1] Test",
+            "group": "test",
+            "type": "shell",
+            "command": "make check",
+            "options": {
+                "cwd": "${workspaceFolder}/threads/build"
+            }
+        },
+        {
             "label": "[Lab2] compile",
             "type": "shell",
             "command": "make",
             "options": {
                 "cwd": "${workspaceFolder}/userprog"
+            }
+        },
+        {
+            "label": "[Lab2] Clean",
+            "group": "build",
+            "type": "shell",
+            "command": "make clean",
+            "options": {
+                "cwd": "${workspaceFolder}/userprog"
+            }
+        },
+        {
+            "label": "[Lab2] Test",
+            "group": "test",
+            "type": "shell",
+            "command": "make clean",
+            "options": {
+                "cwd": "${workspaceFolder}/userprog/build"
             }
         },
         {
@@ -26,7 +62,25 @@
             }
         },
         {
-            "label": "[Lab1] Run In Default Scheduler",
+            "label": "[program] clean",
+            "group": "build",
+            "type": "shell",
+            "command": "make clean",
+            "options": {
+                "cwd": "${workspaceFolder}/examples"
+            }
+        },
+        {
+            "label": "[utils] compile",
+            "group": "build",
+            "type": "shell",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceFolder}/utils"
+            }
+        },
+        {
+            "label": "[Lab1] Use Default Scheduler",
             "type": "shell",
             "isBackground": true,
             "problemMatcher": [
@@ -49,13 +103,21 @@
             "dependsOn": [
                 "[Lab1] compile"
             ],
-            "command": "../../utils/pintos -v -k --gdb -- run ${input:test_name}",
+            "command": "../../utils/pintos",
+            "args": [
+                "-v",
+                "-k",
+                "--gdb",
+                "--",
+                "run",
+                "${input:lab1_default_test_name}",
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/threads/build"
             }
         },
         {
-            "label": "[Lab1] Run In Advance Scheduler",
+            "label": "[Lab1] Use Advance Scheduler",
             "type": "shell",
             "isBackground": true,
             "problemMatcher": [
@@ -78,7 +140,16 @@
             "dependsOn": [
                 "[Lab1] compile"
             ],
-            "command": "../../utils/pintos -v -k --gdb -- -mlfqs run ${input:test_name}",
+            "command": "../../utils/pintos",
+            "args": [
+                "-v",
+                "-k",
+                "--gdb",
+                "--",
+                "-mlfqs",
+                "run",
+                "${input:lab1_mlfqs_test_name}"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/threads/build"
             }
@@ -107,7 +178,7 @@
             "dependsOn": [
                 "[Lab2] compile",
             ],
-            "command": "../../utils/pintos --filesys-size=2 -p tests/userprog/${input:test_name} -a ${input:test_name} -v --gdb -k --  -f -q  run ${input:test_name}",
+            "command": "../../utils/pintos --filesys-size=2 -p tests/userprog/${input:lab2_test_name} -a ${input:lab2_test_name} -v --gdb -k --  -f -q  run ${input:lab2_test_cli}",
             "options": {
                 "cwd": "${workspaceFolder}/userprog/build"
             }
@@ -137,7 +208,22 @@
                 "[Lab2] compile",
                 "[program] compile"
             ],
-            "command": "../../utils/pintos --filesys-size=2 -p ../../examples/${input:program_name} -a ${input:program_name} -v --gdb -k -- -f -q run ${input:program_cli}",
+            "command": "../../utils/pintos",
+            "args": [
+                "-v",
+                "-k",
+                "--gdb",
+                "--filesys-size=2",
+                "-p",
+                "../../examples/${input:program_name}",
+                "-a",
+                "${input:program_name}",
+                "--",
+                "-f",
+                "-q",
+                "run",
+                "${input:program_cli}"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}/userprog/build"
             }
@@ -145,9 +231,30 @@
     ],
     "inputs": [
         {
-            "id": "test_name",
+            "id": "lab1_default_test_name",
+            "type": "pickString",
+            "options": [
+                "alarm-single"
+            ],
+            "description": "Lab1 Test to Debug"
+        },
+        {
+            "id": "lab1_mlfqs_test_name",
+            "type": "pickString",
+            "options": [
+                "mlfqs-block"
+            ],
+            "description": "Lab1 Test to Debug"
+        },
+        {
+            "id": "lab2_test_name",
             "type": "promptString",
-            "description": "Name of the Test to Debug"
+            "description": "Name of Lab2 Test to Debug"
+        },
+        {
+            "id": "lab2_test_cli",
+            "type": "promptString",
+            "description": "debug cli"
         },
         {
             "id": "program_name",

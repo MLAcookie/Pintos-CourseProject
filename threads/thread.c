@@ -420,11 +420,6 @@ void thread_exit(void)
     process_exit();
 #endif
     intr_disable();
-
-    printf("%s: exit(%d)\n", thread_name(), thread_current()->exit_error);
-    thread_current()->child_info->exit_error = thread_current()->exit_error;
-    sema_up(&thread_current()->child_info->child_exit_sema);
-
     list_remove(&thread_current()->allelem);
     thread_current()->status = THREAD_DYING;
     schedule();

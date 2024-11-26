@@ -56,6 +56,7 @@ tid_t process_execute(const char *file_name)
     return tid;
 }
 
+// lab2 debug 打印堆栈中的参数信息
 void process_debug_print_argument_stack(struct intr_frame *f)
 {
     const int offset = 0xfc0;
@@ -69,6 +70,7 @@ void process_debug_print_argument_stack(struct intr_frame *f)
     printf("(DEBUG): end\n");
 }
 
+// lab2 将参数压入栈
 void process_push_argument(struct intr_frame *frame, char *cli)
 {
     int argc = 0;
@@ -80,7 +82,7 @@ void process_push_argument(struct intr_frame *frame, char *cli)
         memcpy(frame->esp, token, strlen(token) + 1);
         argv[argc++] = (int)frame->esp;
     }
-
+    // lab2 四字节对齐
     frame->esp = (int)frame->esp & 0xfffffffc;
     frame->esp -= 4;
     *(int *)frame->esp = 0;
@@ -114,6 +116,7 @@ static void start_process(void *file_name_)
     if_.cs = SEL_UCSEG;
     if_.eflags = FLAG_IF | FLAG_MBS;
 
+    // lab2 获取文件名
     char *token, *save_ptr;
     file_name = strtok_r(file_name, " ", &save_ptr);
     success = load(file_name, &if_.eip, &if_.esp);
@@ -157,6 +160,7 @@ int process_wait(tid_t child_tid UNUSED)
     struct list *child_list = &cur->child_list;
     struct list_elem *p_elem;
 
+    // lab2 循环枚举出需要等待的线程
     for (p_elem = list_begin(child_list); p_elem != list_end(child_list); p_elem = list_next(p_elem))
     {
         struct child_thread *p_child = list_entry(p_elem, struct child_thread, child_elem);
@@ -166,6 +170,7 @@ int process_wait(tid_t child_tid UNUSED)
             {
                 return -1;
             }
+            // 等待这个子线程
             else
             {
                 p_child->is_running = true;
@@ -174,6 +179,7 @@ int process_wait(tid_t child_tid UNUSED)
             }
         }
     }
+    // 表示没有枚举出
     if (p_elem == list_end(child_list))
     {
         return -1;
@@ -187,6 +193,11 @@ void process_exit(void)
 {
     struct thread *cur = thread_current();
     uint32_t *pd;
+
+    // lab2 输出退出信息，线程退出信号量+1
+    printf("%s: exit(%d)\n", thread_name(), thread_current()->exit_error);
+    thread_current()->child_info->exit_error = thread_current()->exit_error;
+    sema_up(&thread_current()->child_info->child_exit_sema);
 
     /* Destroy the current process's page directory and switch back
        to the kernel-only page directory. */
