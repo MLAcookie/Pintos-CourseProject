@@ -164,7 +164,8 @@ static void timer_interrupt(struct intr_frame *args UNUSED)
     thread_tick();
     // lab1 将到达休眠时间将线程移出休眠队列
     thread_wakeup();
-
+    
+#ifdef THREAD
     // lab1 高级调度
     if (thread_mlfqs)
     {
@@ -179,6 +180,7 @@ static void timer_interrupt(struct intr_frame *args UNUSED)
             thread_foreach(thread_mlfqs_refresh_priority, NULL);
         }
     }
+#endif
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

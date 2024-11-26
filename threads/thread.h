@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/fp.h"
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -29,6 +30,16 @@ typedef int tid_t;
 #define NICENESS_MIN -20
 #define NICENESS_DEFAULT 0
 #define NICENESS_MAX 20
+
+// lab2 子线程信息
+struct child_thread
+{
+    tid_t tid;
+    struct list_elem child_elem;
+    struct semaphore child_exit_sema;
+    int exit_error;
+    bool is_running;
+};
 
 /* A kernel thread or user process.
 
@@ -97,18 +108,22 @@ struct thread
     int priority;              // Priority.
     int base_priority;         // lab1 添加基础优先级
     struct list_elem allelem;  // List element for all threads list.
+    int wakeup_ticks;          // lab1 添加休眠终止时间刻
 
-    int wakeup_ticks; // lab1 添加休眠终止时间刻
-
+#ifdef THREAD
     struct lock *wait_on_lock; // lab1 等待的锁
     struct list lock_list;     // lab1 锁列表
 
     int niceness;  // lab1 高级调度 线程的好心程度
     fp recent_cpu; // lab1 高级调度 线程使用的cpu时间
+#endif
 
-    struct thread *parent_thread;      // lab2 父线程
-    struct semaphore *child_load_sema; // lab2 子线程加载信号量
-    int exit_error;                    // lab2 错误退出代码
+    struct thread *parent_thread;     // lab2 父线程
+    struct semaphore child_load_sema; // lab2 子线程加载信号量
+    struct list child_list;           // lab2 子线程列表
+    struct child_thread *child_info;         // lab2 作为子线程会用到的信息
+    int exit_error;                   // lab2 错误退出代码
+    bool is_create_success;           // lab2 子线程是否创建成功
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem; /* List element. */
@@ -126,9 +141,15 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+
+// lab1 线程休眠时间刻比较函数
+bool thread_less_wakeup_tick(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+// lab1 线程优先级比较函数
+bool thread_more_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+
+#ifdef THREAD
 // lab1 高级调度 系统负载
 extern fp thread_load_avg;
-
 // lab1 高级调度 基于nice与recent_cpu计算线程优先级
 void thread_mlfqs_refresh_priority(struct thread *t);
 // lab1 高级调度 当前线程recent_cpu自增1
@@ -137,13 +158,12 @@ void thread_mlfqs_increase_recent_cpu(void);
 void thread_mlfqs_refresh_recent_cpu(struct thread *t);
 // lab1 高级调度 计算系统使用负载
 void thread_mlfqs_refresh_load_avg(void);
-
-// lab1 线程休眠时间刻比较函数
-bool thread_less_wakeup_tick(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-// lab1 线程优先级比较函数
-bool thread_more_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 // lab1 当前线程是否持有锁
 bool thread_is_holding_lock(void);
+#endif
+
+// lab2 全局文件系统锁
+extern struct lock filesys_lock;
 
 void thread_init(void);
 void thread_start(void);
@@ -181,4 +201,4 @@ void thread_set_nice(int);
 int thread_get_recent_cpu(void);
 int thread_get_load_avg(void);
 
-#endif /* threads/thread.h */
+#endif

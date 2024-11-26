@@ -118,7 +118,7 @@ void sema_up(struct semaphore *sema)
     sema->value++;
     intr_set_level(old_level);
 
-    //这个宏是一定要判断的，不然lab2内核会炸 
+// 这个宏是一定要判断的，不然lab2内核会炸
 #ifdef THREAD
     thread_yield();
 #endif
@@ -159,14 +159,6 @@ static void sema_test_helper(void *sema_)
     }
 }
 
-// lab1 lock最高优先级比较
-bool lock_less_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
-    struct lock *plock_a = list_entry(a, struct lock, elem);
-    struct lock *plock_b = list_entry(b, struct lock, elem);
-    return plock_a->max_priority < plock_b->max_priority;
-}
-
 /* Initializes LOCK.  A lock can be held by at most a single
    thread at any given time.  Our locks are not "recursive", that
    is, it is an error for the thread currently holding a lock to
@@ -190,6 +182,14 @@ void lock_init(struct lock *lock)
     sema_init(&lock->semaphore, 1);
 }
 
+#ifdef THREAD
+// lab1 lock最高优先级比较
+bool lock_less_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+{
+    struct lock *plock_a = list_entry(a, struct lock, elem);
+    struct lock *plock_b = list_entry(b, struct lock, elem);
+    return plock_a->max_priority < plock_b->max_priority;
+}
 // lab1 锁占用的优先级借用单独列出来
 void lock_acquire_priority_donation(struct lock *lock)
 {
@@ -221,6 +221,23 @@ void lock_acquire_priority_donation(struct lock *lock)
         list_push_back(&cur->lock_list, &lock->elem);
     }
 }
+
+// lab1 锁释放的优先级借用单独列出来
+void lock_release_priority_donation(struct lock *lock)
+{
+    // lab1 添加锁释放时的处理
+    struct thread *cur = thread_current();
+    list_remove(&lock->elem);
+    int max_priority = cur->base_priority;
+    if (thread_is_holding_lock())
+    {
+        struct list_elem *max_priority_lock = list_max(&cur->lock_list, lock_less_priority, NULL);
+        int priority = list_entry(max_priority_lock, struct lock, elem)->max_priority;
+        max_priority = priority > max_priority ? priority : max_priority;
+    }
+    cur->priority = max_priority;
+}
+#endif
 
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
@@ -267,22 +284,6 @@ bool lock_try_acquire(struct lock *lock)
         lock->holder = thread_current();
     }
     return success;
-}
-
-// lab1 锁释放的优先级借用单独列出来
-void lock_release_priority_donation(struct lock *lock)
-{
-    // lab1 添加锁释放时的处理
-    struct thread *cur = thread_current();
-    list_remove(&lock->elem);
-    int max_priority = cur->base_priority;
-    if (thread_is_holding_lock())
-    {
-        struct list_elem *max_priority_lock = list_max(&cur->lock_list, lock_less_priority, NULL);
-        int priority = list_entry(max_priority_lock, struct lock, elem)->max_priority;
-        max_priority = priority > max_priority ? priority : max_priority;
-    }
-    cur->priority = max_priority;
 }
 
 /* Releases LOCK, which must be owned by the current thread.

@@ -18,6 +18,14 @@
             }
         },
         {
+            "label": "[program] compile",
+            "type": "shell",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceFolder}/examples"
+            }
+        },
+        {
             "label": "[Lab1] Run In Default Scheduler",
             "type": "shell",
             "isBackground": true,
@@ -76,7 +84,7 @@
             }
         },
         {
-            "label": "[Lab2] Run",
+            "label": "[Lab2] Run Test",
             "type": "shell",
             "isBackground": true,
             "problemMatcher": [
@@ -97,19 +105,59 @@
                 }
             ],
             "dependsOn": [
-                "[Lab2] compile"
+                "[Lab2] compile",
             ],
-            "command": "../../utils/pintos -v -k --gdb -- run ${input:test_name}",
+            "command": "../../utils/pintos --filesys-size=2 -p tests/userprog/${input:test_name} -a ${input:test_name} -v --gdb -k --  -f -q  run ${input:test_name}",
             "options": {
                 "cwd": "${workspaceFolder}/userprog/build"
             }
-        }  
+        },
+        {
+            "label": "[Lab2] Run Program",
+            "type": "shell",
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ],
+            "dependsOn": [
+                "[Lab2] compile",
+                "[program] compile"
+            ],
+            "command": "../../utils/pintos --filesys-size=2 -p ../../examples/${input:program_name} -a ${input:program_name} -v --gdb -k -- -f -q run ${input:program_cli}",
+            "options": {
+                "cwd": "${workspaceFolder}/userprog/build"
+            }
+        }
     ],
     "inputs": [
         {
             "id": "test_name",
             "type": "promptString",
             "description": "Name of the Test to Debug"
+        },
+        {
+            "id": "program_name",
+            "type": "promptString",
+            "description": "name of program to debug"
+        },
+        {
+            "id": "program_cli",
+            "type": "promptString",
+            "description": "debug cli"
         }
     ]
 }

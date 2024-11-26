@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 
 static thread_func start_process NO_RETURN;
 static bool load(const char *cmdline, void (**eip)(void), void **esp);
@@ -27,21 +28,73 @@ static bool load(const char *cmdline, void (**eip)(void), void **esp);
    thread id, or TID_ERROR if the thread cannot be created. */
 tid_t process_execute(const char *file_name)
 {
-    char *fn_copy;
     tid_t tid;
-
     /* Make a copy of FILE_NAME.
        Otherwise there's a race between the caller and load(). */
-    fn_copy = palloc_get_page(0);
-    if (fn_copy == NULL)
-        return TID_ERROR;
-    strlcpy(fn_copy, file_name, PGSIZE);
+    char *fn_copy = malloc(strlen(file_name) + 1);
+    char *target_name = malloc(strlen(file_name) + 1);
+    strlcpy(fn_copy, file_name, strlen(file_name) + 1);
+    strlcpy(target_name, file_name, strlen(file_name) + 1);
 
     /* Create a new thread to execute FILE_NAME. */
-    tid = thread_create(file_name, PRI_DEFAULT, start_process, fn_copy);
+    char *save_ptr;
+    target_name = strtok_r(target_name, " ", &save_ptr);
+    tid = thread_create(target_name, PRI_DEFAULT, start_process, fn_copy);
+    free(target_name);
+
     if (tid == TID_ERROR)
-        palloc_free_page(fn_copy);
+    {
+        free(fn_copy);
+        return tid;
+    }
+    sema_down(&thread_current()->child_load_sema);
+    if (!thread_current()->is_create_success)
+    {
+        return TID_ERROR;
+    }
+
     return tid;
+}
+
+void process_debug_print_argument_stack(struct intr_frame *f)
+{
+    const int offset = 0xfc0;
+    const int show_size = 1 << 6;
+
+    void *stack_ptr = f->esp;
+    void *upage = pg_round_down(stack_ptr);
+
+    printf("(DEBUG): Print Argument Stack\n");
+    hex_dump((uintptr_t)upage + offset, upage + offset, show_size, true);
+    printf("(DEBUG): end\n");
+}
+
+void process_push_argument(struct intr_frame *frame, char *cli)
+{
+    int argc = 0;
+    int argv[64];
+    char *token, *save_ptr;
+    for (token = strtok_r(cli, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr))
+    {
+        frame->esp -= (strlen(token) + 1);
+        memcpy(frame->esp, token, strlen(token) + 1);
+        argv[argc++] = (int)frame->esp;
+    }
+
+    frame->esp = (int)frame->esp & 0xfffffffc;
+    frame->esp -= 4;
+    *(int *)frame->esp = 0;
+    for (int i = argc - 1; i >= 0; i--)
+    {
+        frame->esp -= 4;
+        *(int *)frame->esp = argv[i];
+    }
+    frame->esp -= 4;
+    *(int *)frame->esp = (int)frame->esp + 4;
+    frame->esp -= 4;
+    *(int *)frame->esp = argc;
+    frame->esp -= 4;
+    *(int *)frame->esp = 0;
 }
 
 /* A thread function that loads a user process and starts it
@@ -52,17 +105,32 @@ static void start_process(void *file_name_)
     struct intr_frame if_;
     bool success;
 
+    char *cli_copy = malloc(strlen(file_name) + 1);
+    strlcpy(cli_copy, file_name, strlen(file_name) + 1);
+
     /* Initialize interrupt frame and load executable. */
     memset(&if_, 0, sizeof if_);
     if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
     if_.cs = SEL_UCSEG;
     if_.eflags = FLAG_IF | FLAG_MBS;
+
+    char *token, *save_ptr;
+    file_name = strtok_r(file_name, " ", &save_ptr);
     success = load(file_name, &if_.eip, &if_.esp);
 
-    /* If load failed, quit. */
-    palloc_free_page(file_name);
+    struct thread *cur = thread_current();
     if (!success)
+    {
+        cur->parent_thread->is_create_success = false;
+        sema_up(&cur->parent_thread->child_load_sema);
         thread_exit();
+    }
+    else
+    {
+        process_push_argument(&if_, cli_copy);
+        process_debug_print_argument_stack(&if_);
+        sema_up(&cur->parent_thread->child_load_sema);
+    }
 
     /* Start the user process by simulating a return from an
        interrupt, implemented by intr_exit (in
@@ -85,7 +153,33 @@ static void start_process(void *file_name_)
    does nothing. */
 int process_wait(tid_t child_tid UNUSED)
 {
-    return -1;
+    struct thread *cur = thread_current();
+    struct list *child_list = &cur->child_list;
+    struct list_elem *p_elem;
+
+    for (p_elem = list_begin(child_list); p_elem != list_end(child_list); p_elem = list_next(p_elem))
+    {
+        struct child_thread *p_child = list_entry(p_elem, struct child_thread, child_elem);
+        if (p_child->tid == child_tid)
+        {
+            if (p_child->is_running)
+            {
+                return -1;
+            }
+            else
+            {
+                p_child->is_running = true;
+                sema_down(&p_child->child_exit_sema);
+                break;
+            }
+        }
+    }
+    if (p_elem == list_end(child_list))
+    {
+        return -1;
+    }
+    list_remove(p_elem);
+    return list_entry(p_elem, struct child_thread, child_elem)->exit_error;
 }
 
 /* Free the current process's resources. */

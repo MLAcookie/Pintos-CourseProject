@@ -62,8 +62,13 @@ static unsigned thread_ticks; /* # of timer ticks since last yield. */
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
+
+#ifdef THREAD
 // lab1 高级调度 系统负载
 fp thread_load_avg;
+#endif
+// lab2 全局文件系统锁
+struct lock filesys_lock;
 
 static void kernel_thread(thread_func *, void *aux);
 
@@ -93,6 +98,7 @@ bool thread_more_priority(const struct list_elem *a, const struct list_elem *b, 
     return p_thread_a->priority > p_thread_b->priority;
 }
 
+#ifdef THREAD
 // lab1 当前线程是否持有锁
 bool thread_is_holding_lock(void)
 {
@@ -161,6 +167,7 @@ void thread_mlfqs_refresh_load_avg(void)
     // 59/60 * load_avg + 1/60 * ready_threads
     thread_load_avg = fp_add_fp(f_a, f_b);
 }
+#endif
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -184,6 +191,8 @@ void thread_init(void)
     list_init(&all_list);
     // lab1 初始化休眠线程队列
     list_init(&sleep_list);
+    // lab2 初始化全局文件系统锁
+    lock_init(&filesys_lock);
 
     /* Set up a thread structure for the running thread. */
     initial_thread = running_thread();
@@ -297,6 +306,13 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
     init_thread(t, name, priority);
     tid = t->tid = allocate_tid();
 
+    t->child_info = malloc(sizeof(struct child_thread));
+    t->child_info->tid = tid;
+    sema_init(&t->child_info->child_exit_sema, 0);
+    list_push_back(&thread_current()->child_list, &t->child_info->child_elem);
+    t->child_info->exit_error = UINT32_MAX;
+    t->child_info->is_running = false;
+
     /* Stack frame for kernel_thread(). */
     kf = alloc_frame(t, sizeof *kf);
     kf->eip = NULL;
@@ -403,11 +419,12 @@ void thread_exit(void)
 #ifdef USERPROG
     process_exit();
 #endif
-
-    /* Remove thread from all threads list, set our status to dying,
-       and schedule another process.  That process will destroy us
-       when it calls thread_schedule_tail(). */
     intr_disable();
+
+    printf("%s: exit(%d)\n", thread_name(), thread_current()->exit_error);
+    thread_current()->child_info->exit_error = thread_current()->exit_error;
+    sema_up(&thread_current()->child_info->child_exit_sema);
+
     list_remove(&thread_current()->allelem);
     thread_current()->status = THREAD_DYING;
     schedule();
@@ -455,7 +472,7 @@ void thread_set_priority(int new_priority)
 {
     // 断言限制优先级范围
     ASSERT(PRI_MIN <= new_priority && new_priority <= PRI_MAX);
-
+#ifdef THREAD
     struct thread *cur = thread_current();
     cur->base_priority = new_priority;
     if (!thread_is_holding_lock() || new_priority > cur->priority)
@@ -463,6 +480,9 @@ void thread_set_priority(int new_priority)
         cur->priority = new_priority;
         thread_yield();
     }
+#else
+    thread_current()->priority = new_priority;
+#endif
 }
 
 /* Returns the current thread's priority. */
@@ -474,28 +494,36 @@ int thread_get_priority(void)
 /* Sets the current thread's nice value to NICE. */
 void thread_set_nice(int nice)
 {
+#ifdef THREAD
     struct thread *cur = thread_current();
     cur->niceness = nice;
     thread_mlfqs_refresh_priority(cur);
     thread_yield();
+#endif
 }
 
 /* Returns the current thread's nice value. */
 int thread_get_nice(void)
 {
+#ifdef THREAD
     return thread_current()->niceness;
+#endif
 }
 
 /* Returns 100 times the system load average. */
 int thread_get_load_avg(void)
 {
+#ifdef THREAD
     return fp_toint_round(fp_mul_int(thread_load_avg, 100));
+#endif
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int thread_get_recent_cpu(void)
 {
+#ifdef THREAD
     return fp_toint_round(fp_mul_int(thread_current()->recent_cpu, 100));
+#endif
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -581,13 +609,20 @@ static void init_thread(struct thread *t, const char *name, int priority)
     t->priority = priority;
     // lab1 添加初始化基础优先级
     t->base_priority = priority;
+#ifdef THREAD
     // lab1 添加初始化优先级借用列表
     list_init(&t->lock_list);
     t->wait_on_lock = NULL;
+#endif
     // lab2 初始化信号量
     sema_init(&t->child_load_sema, 0);
+    // lab2 获取父线程
+    t->parent_thread = t == initial_thread ? NULL : thread_current();
+    // lab2 初始化子线程列表
+    list_init(&t->child_list);
     t->magic = THREAD_MAGIC;
-
+    t->is_create_success = true;
+    t->exit_error = true;
     old_level = intr_disable();
     list_push_back(&all_list, &t->allelem);
     intr_set_level(old_level);

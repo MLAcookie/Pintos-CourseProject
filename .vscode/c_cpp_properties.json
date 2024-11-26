@@ -7,8 +7,8 @@
             ],
             "defines": ["THREAD"],
             "compilerPath": "/usr/bin/gcc",
-            "cStandard": "c17",
-            "cppStandard": "gnu++17",
+            "cStandard": "c11",
+            "cppStandard": "gnu++11",
             "intelliSenseMode": "linux-gcc-x64",
             "configurationProvider": "ms-vscode.makefile-tools"
         },
@@ -22,8 +22,8 @@
                 "FILESYS"
             ],
             "compilerPath": "/usr/bin/gcc",
-            "cStandard": "c17",
-            "cppStandard": "gnu++17",
+            "cStandard": "c11",
+            "cppStandard": "gnu++11",
             "intelliSenseMode": "linux-gcc-x64",
             "configurationProvider": "ms-vscode.makefile-tools"
         }

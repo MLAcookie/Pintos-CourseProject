@@ -12,7 +12,13 @@
         "syscall-nr.h": "c",
         "string.h": "c",
         "*.inc": "c",
-        "atomic": "c"
+        "atomic": "c",
+        "stdio.h": "c",
+        "stdarg.h": "c",
+        "console.h": "c",
+        "stdint.h": "c",
+        "list.h": "c",
+        "random.h": "c"
     },
     "C_Cpp.clang_format_sortIncludes": false,
     "C_Cpp.clang_format_fallbackStyle": "Microsoft",
