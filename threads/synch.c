@@ -239,6 +239,19 @@ void lock_release_priority_donation(struct lock *lock)
 }
 #endif
 
+// lab2 全局文件系统锁
+struct lock filesys_lock;
+// lab2 获取全局的文件系统锁
+void lock_acquire_filesys(void)
+{
+    lock_acquire(&filesys_lock);
+}
+// lab2 释放全局的文件系统锁
+void lock_release_filesys(void)
+{
+    lock_release(&filesys_lock);
+}
+
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.

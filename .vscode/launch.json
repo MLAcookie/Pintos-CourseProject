@@ -1,7 +1,4 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -19,12 +16,10 @@
             "setupCommands": [
                 {
                     "text": "-enable-pretty-printing",
-                    "description": "Enable pretty-printing for gdb",
                     "ignoreFailures": true
                 },
                 {
                     "text": "source -v ${workspaceFolder}/misc/gdb-macros",
-                    "description": "Import Pintos GDB macros file",
                     "ignoreFailures": false
                 }
             ],
@@ -48,12 +43,10 @@
             "setupCommands": [
                 {
                     "text": "-enable-pretty-printing",
-                    "description": "Enable pretty-printing for gdb",
                     "ignoreFailures": true
                 },
                 {
                     "text": "source -v ${workspaceFolder}/misc/gdb-macros",
-                    "description": "Import Pintos GDB macros file",
                     "ignoreFailures": false
                 }
             ],
@@ -77,12 +70,10 @@
             "setupCommands": [
                 {
                     "text": "-enable-pretty-printing",
-                    "description": "Enable pretty-printing for gdb",
                     "ignoreFailures": true
                 },
                 {
                     "text": "source -v ${workspaceFolder}/misc/gdb-macros",
-                    "description": "Import Pintos GDB macros file",
                     "ignoreFailures": false
                 }
             ],
@@ -106,12 +97,10 @@
             "setupCommands": [
                 {
                     "text": "-enable-pretty-printing",
-                    "description": "Enable pretty-printing for gdb",
                     "ignoreFailures": true
                 },
                 {
                     "text": "source -v ${workspaceFolder}/misc/gdb-macros",
-                    "description": "Import Pintos GDB macros file",
                     "ignoreFailures": false
                 }
             ],

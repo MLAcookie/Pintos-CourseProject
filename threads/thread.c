@@ -67,8 +67,6 @@ bool thread_mlfqs;
 // lab1 高级调度 系统负载
 fp thread_load_avg;
 #endif
-// lab2 全局文件系统锁
-struct lock filesys_lock;
 
 static void kernel_thread(thread_func *, void *aux);
 
@@ -191,8 +189,6 @@ void thread_init(void)
     list_init(&all_list);
     // lab1 初始化休眠线程队列
     list_init(&sleep_list);
-    // lab2 初始化全局文件系统锁
-    lock_init(&filesys_lock);
 
     /* Set up a thread structure for the running thread. */
     initial_thread = running_thread();
@@ -243,6 +239,21 @@ void thread_wakeup(void)
         list_remove(p_elem);
         thread_unblock(p_thread);
     }
+}
+
+// lab2 按照fd寻找文件
+struct file *thread_find_file(int fd)
+{
+    struct list_elem *e;
+    struct thread_file *p_thread_file = NULL;
+    struct list *files = &thread_current()->file_descriptor_list;
+    for (e = list_begin(files); e != list_end(files); e = list_next(e))
+    {
+        p_thread_file = list_entry(e, struct thread_file, file_elem);
+        if (fd == p_thread_file->fd)
+            return p_thread_file;
+    }
+    return NULL;
 }
 
 /* Called by the timer interrupt handler at each timer tick.
@@ -615,9 +626,15 @@ static void init_thread(struct thread *t, const char *name, int priority)
     t->parent_thread = t == initial_thread ? NULL : thread_current();
     // lab2 初始化子线程列表
     list_init(&t->child_list);
-    t->magic = THREAD_MAGIC;
+    // lab2 初始化文件部分
+    list_init(&t->file_descriptor_list);
+    t->current_file = NULL;
+    t->next_fd = 2;
+
     t->is_create_success = true;
-    t->exit_error = true;
+    t->exit_error = -1;
+
+    t->magic = THREAD_MAGIC;
     old_level = intr_disable();
     list_push_back(&all_list, &t->allelem);
     intr_set_level(old_level);

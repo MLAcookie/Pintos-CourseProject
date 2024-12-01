@@ -28,6 +28,13 @@ struct lock
     struct semaphore semaphore; /* Binary semaphore controlling access. */
 };
 
+// lab2 全局文件系统锁
+extern struct lock filesys_lock;
+// lab2 获取全局的文件系统锁
+void lock_acquire_filesys(void);
+// lab2 释放全局的文件系统锁
+void lock_release_filesys(void);
+
 void lock_init(struct lock *);
 void lock_acquire(struct lock *);
 bool lock_try_acquire(struct lock *);

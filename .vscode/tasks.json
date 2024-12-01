@@ -48,13 +48,13 @@
             "label": "[Lab2] Test",
             "group": "test",
             "type": "shell",
-            "command": "make clean",
+            "command": "make check",
             "options": {
                 "cwd": "${workspaceFolder}/userprog/build"
             }
         },
         {
-            "label": "[program] compile",
+            "label": "[Program] compile",
             "type": "shell",
             "command": "make",
             "options": {
@@ -62,7 +62,7 @@
             }
         },
         {
-            "label": "[program] clean",
+            "label": "[Program] Clean",
             "group": "build",
             "type": "shell",
             "command": "make clean",
@@ -71,7 +71,7 @@
             }
         },
         {
-            "label": "[utils] compile",
+            "label": "[Utils] Compile",
             "group": "build",
             "type": "shell",
             "command": "make",
@@ -178,9 +178,12 @@
             "dependsOn": [
                 "[Lab2] compile",
             ],
-            "command": "../../utils/pintos --filesys-size=2 -p tests/userprog/${input:lab2_test_name} -a ${input:lab2_test_name} -v --gdb -k --  -f -q  run ${input:lab2_test_cli}",
+            "command": "./run_test.sh",
+            "args": [
+                "${input:lab2_test_name}",
+            ],
             "options": {
-                "cwd": "${workspaceFolder}/userprog/build"
+                "cwd": "${workspaceFolder}/userprog"
             }
         },
         {
@@ -206,7 +209,7 @@
             ],
             "dependsOn": [
                 "[Lab2] compile",
-                "[program] compile"
+                "[Program] compile"
             ],
             "command": "../../utils/pintos",
             "args": [
@@ -222,7 +225,7 @@
                 "-f",
                 "-q",
                 "run",
-                "${input:program_cli}"
+                "'${input:program_cli}'"
             ],
             "options": {
                 "cwd": "${workspaceFolder}/userprog/build"
@@ -234,7 +237,24 @@
             "id": "lab1_default_test_name",
             "type": "pickString",
             "options": [
-                "alarm-single"
+                "alarm-single",
+                "alarm-multiple",
+                "alarm-simultaneous",
+                "alarm-priority",
+                "alarm-zero",
+                "alarm-negatve",
+                "priority-change",
+                "priority-donate-one",
+                "priority-donate-multiple",
+                "priority-donate-multiple2",
+                "priority-donate-nest",
+                "priority-donate-sema",
+                "priority-donate-lower",
+                "priority-donate-chain",
+                "priority-fifo",
+                "priority-preempt",
+                "priority-sema",
+                "priority-condvar",
             ],
             "description": "Lab1 Test to Debug"
         },
@@ -242,19 +262,90 @@
             "id": "lab1_mlfqs_test_name",
             "type": "pickString",
             "options": [
-                "mlfqs-block"
+                "mlfqs-block",
+                "mlfqs-load-1",
+                "mlfqs-load-60",
+                "mlfqs-load-avg",
+                "mlfqs-recent-1",
+                "mlfqs-fair-2",
+                "mlfqs-fair-20",
+                "mlfqs-nice-2",
+                "mlfqs-nice-20",
             ],
             "description": "Lab1 Test to Debug"
         },
         {
             "id": "lab2_test_name",
-            "type": "promptString",
-            "description": "Name of Lab2 Test to Debug"
-        },
-        {
-            "id": "lab2_test_cli",
-            "type": "promptString",
-            "description": "debug cli"
+            "type": "pickString",
+            "options": [
+                "args-none",
+                "args-single",
+                "args-multiple",
+                "args-many",
+                "args-dbl-space",
+                "sc-bad-sp",
+                "sc-bad-arg",
+                "sc-boundary",
+                "sc-boundary-2",
+                "sc-boundary-3",
+                "halt",
+                "exit",
+                "create-normal",
+                "create-empty",
+                "create-null",
+                "create-bad-ptr",
+                "create-long",
+                "create-exists",
+                "create-bound",
+                "open-normal",
+                "open-missing",
+                "open-boundary",
+                "open-empty",
+                "open-null",
+                "open-bad-ptr",
+                "open-twice",
+                "close-normal",
+                "close-twice",
+                "close-stdin",
+                "close-stdout",
+                "close-bad-fd",
+                "read-normal",
+                "read-bad-ptr",
+                "read-boundary",
+                "read-zero",
+                "read-stdout",
+                "read-bad-fd",
+                "write-normal",
+                "write-bad-ptr",
+                "write-boundary",
+                "write-zero",
+                "write-stdin",
+                "write-bad-fd",
+                "exec-once",
+                "exec-arg",
+                "exec-bound",
+                "exec-bound-2",
+                "exec-bound-3",
+                "exec-multiple",
+                "exec-missing",
+                "exec-bad-ptr",
+                "wait-simple",
+                "wait-twice",
+                "wait-killed",
+                "wait-bad-pid",
+                "multi-recurse",
+                "multi-child-fd",
+                "rox-simple",
+                "rox-child",
+                "rox-multichild",
+                "bad-read",
+                "bad-write",
+                "bad-read2",
+                "bad-write2",
+                "bad-jump",
+                "bad-jump2"
+            ],
+            "description": "Lab2 Test to Debug"
         },
         {
             "id": "program_name",

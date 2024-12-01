@@ -131,7 +131,8 @@ static void start_process(void *file_name_)
     else
     {
         process_push_argument(&if_, cli_copy);
-        process_debug_print_argument_stack(&if_);
+        // process_debug_print_argument_stack(&if_);
+        cur->parent_thread->is_create_success = true;
         sema_up(&cur->parent_thread->child_load_sema);
     }
 
@@ -194,10 +195,11 @@ void process_exit(void)
     struct thread *cur = thread_current();
     uint32_t *pd;
 
-    // lab2 输出退出信息，线程退出信号量+1
+    // lab2 输出退出信息，线程退出信号量+1，关闭当前文件
     printf("%s: exit(%d)\n", thread_name(), thread_current()->exit_error);
     thread_current()->child_info->exit_error = thread_current()->exit_error;
     sema_up(&thread_current()->child_info->child_exit_sema);
+    file_close(cur->current_file);
 
     /* Destroy the current process's page directory and switch back
        to the kernel-only page directory. */
@@ -306,7 +308,7 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage, uint32_t 
    Returns true if successful, false otherwise. */
 bool load(const char *file_name, void (**eip)(void), void **esp)
 {
-    struct thread *t = thread_current();
+    struct thread *cur = thread_current();
     struct Elf32_Ehdr ehdr;
     struct file *file = NULL;
     off_t file_ofs;
@@ -314,8 +316,8 @@ bool load(const char *file_name, void (**eip)(void), void **esp)
     int i;
 
     /* Allocate and activate page directory. */
-    t->pagedir = pagedir_create();
-    if (t->pagedir == NULL)
+    cur->pagedir = pagedir_create();
+    if (cur->pagedir == NULL)
         goto done;
     process_activate();
 
@@ -326,7 +328,6 @@ bool load(const char *file_name, void (**eip)(void), void **esp)
         printf("load: %s: open failed\n", file_name);
         goto done;
     }
-
     /* Read and verify executable header. */
     if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr || memcmp(ehdr.e_ident, "\177ELF\1\1\1", 7) ||
         ehdr.e_type != 2 || ehdr.e_machine != 3 || ehdr.e_version != 1 ||
@@ -335,6 +336,9 @@ bool load(const char *file_name, void (**eip)(void), void **esp)
         printf("load: %s: error loading executable\n", file_name);
         goto done;
     }
+
+    file_deny_write(file);
+    cur->current_file = file;
 
     /* Read program headers. */
     file_ofs = ehdr.e_phoff;

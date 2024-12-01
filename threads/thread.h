@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include "threads/fp.h"
 #include "threads/synch.h"
+#ifdef FILESYS
+#include "filesys/file.h"
+#endif
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -39,6 +42,14 @@ struct child_thread
     struct semaphore child_exit_sema;
     int exit_error;
     bool is_running;
+};
+
+// lab2 线程的文件管理
+struct thread_file
+{
+    int fd;
+    struct list_elem file_elem;
+    struct file *using_file;
 };
 
 /* A kernel thread or user process.
@@ -121,9 +132,13 @@ struct thread
     struct thread *parent_thread;     // lab2 父线程
     struct semaphore child_load_sema; // lab2 子线程加载信号量
     struct list child_list;           // lab2 子线程列表
-    struct child_thread *child_info;         // lab2 作为子线程会用到的信息
+    struct child_thread *child_info;  // lab2 作为子线程会用到的信息
     int exit_error;                   // lab2 错误退出代码
     bool is_create_success;           // lab2 子线程是否创建成功
+
+    struct list file_descriptor_list; // lab2 线程文件描述列表
+    int next_fd;                      // lab2 fd
+    struct file *current_file;        // lab2 当前使用的文件
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem; /* List element. */
@@ -162,9 +177,6 @@ void thread_mlfqs_refresh_load_avg(void);
 bool thread_is_holding_lock(void);
 #endif
 
-// lab2 全局文件系统锁
-extern struct lock filesys_lock;
-
 void thread_init(void);
 void thread_start(void);
 
@@ -172,6 +184,9 @@ void thread_start(void);
 void thread_sleep(int64_t target_ticks);
 // lab1 线程苏醒函数 遍历休眠队列，苏醒达到条件的线程
 void thread_wakeup(void);
+
+// lab2 按照fd寻找文件
+struct file *thread_find_file(int fd);
 
 void thread_tick(void);
 void thread_print_stats(void);

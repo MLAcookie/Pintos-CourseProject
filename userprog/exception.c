@@ -139,6 +139,14 @@ static void page_fault(struct intr_frame *f)
     write = (f->error_code & PF_W) != 0;
     user = (f->error_code & PF_U) != 0;
 
+    // lab2 对非用户异常的特殊处理
+    if (!user)
+    {
+        f->eip = f->eax;
+        f->eax = -1;
+        return;
+    }
+
     /* To implement virtual memory, delete the rest of the function
        body, and replace it with code that brings in the page to
        which fault_addr refers. */
