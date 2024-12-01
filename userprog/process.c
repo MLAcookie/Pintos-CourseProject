@@ -201,6 +201,19 @@ void process_exit(void)
     sema_up(&thread_current()->child_info->child_exit_sema);
     file_close(cur->current_file);
 
+    struct list_elem *p_elem;
+    struct list *p_file_list = &thread_current()->file_descriptor_list;
+    while (!list_empty(p_file_list))
+    {
+        p_elem = list_pop_front(p_file_list);
+        struct thread_file *p_thread_file = list_entry(p_elem, struct thread_file, file_elem);
+        lock_acquire_filesys();
+        file_close(p_thread_file->using_file);
+        lock_release_filesys();
+        list_remove(&p_thread_file->file_elem);
+        free(p_thread_file);
+    }
+
     /* Destroy the current process's page directory and switch back
        to the kernel-only page directory. */
     pd = cur->pagedir;
@@ -322,6 +335,7 @@ bool load(const char *file_name, void (**eip)(void), void **esp)
     process_activate();
 
     /* Open executable file. */
+    lock_acquire_filesys();
     file = filesys_open(file_name);
     if (file == NULL)
     {
@@ -408,7 +422,7 @@ bool load(const char *file_name, void (**eip)(void), void **esp)
 
 done:
     /* We arrive here whether the load is successful or not. */
-    file_close(file);
+    lock_release_filesys();
     return success;
 }
 

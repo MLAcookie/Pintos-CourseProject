@@ -97,6 +97,8 @@ task_files[bad-write2]="tests/userprog/bad-write2"
 task_files[bad-jump]="tests/userprog/bad-jump"
 task_files[bad-jump2]="tests/userprog/bad-jump2"
 
+task_files[multi-oom]="pass tests/userprog/no-vm/multi-oom"
+
 task_files[lg-create]="tests/filesys/base/lg-create"
 task_files[lg-full]="tests/filesys/base/lg-full"
 task_files[lg-random]="tests/filesys/base/lg-random"
